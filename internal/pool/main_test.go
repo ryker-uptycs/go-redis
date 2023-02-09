@@ -35,19 +35,18 @@ func perform(n int, cbs ...func(int)) {
 }
 
 func dummyDialer(context.Context) (net.Conn, error) {
+	// return &net.TCPConn{}, nil
 	return newDummyConn(), nil
 }
 
 func newDummyConn() net.Conn {
 	return &dummyConn{
-		rawConn: new(dummyRawConn),
+		rawConn: &dummyRawConn{},
 	}
 }
 
-var (
-	_ net.Conn     = (*dummyConn)(nil)
-	_ syscall.Conn = (*dummyConn)(nil)
-)
+var _ net.Conn = (*dummyConn)(nil)
+var _ syscall.Conn = (*dummyConn)(nil)
 
 type dummyConn struct {
 	rawConn *dummyRawConn
@@ -95,8 +94,8 @@ func (d *dummyConn) SetWriteDeadline(t time.Time) error {
 var _ syscall.RawConn = (*dummyRawConn)(nil)
 
 type dummyRawConn struct {
-	mu     sync.Mutex
 	closed bool
+	mux    sync.Mutex
 }
 
 func (d *dummyRawConn) Control(f func(fd uintptr)) error {
@@ -104,8 +103,8 @@ func (d *dummyRawConn) Control(f func(fd uintptr)) error {
 }
 
 func (d *dummyRawConn) Read(f func(fd uintptr) (done bool)) error {
-	d.mu.Lock()
-	defer d.mu.Unlock()
+	d.mux.Lock()
+	defer d.mux.Unlock()
 	if d.closed {
 		return fmt.Errorf("dummyRawConn closed")
 	}
@@ -115,9 +114,8 @@ func (d *dummyRawConn) Read(f func(fd uintptr) (done bool)) error {
 func (d *dummyRawConn) Write(f func(fd uintptr) (done bool)) error {
 	return nil
 }
-
 func (d *dummyRawConn) Close() {
-	d.mu.Lock()
+	d.mux.Lock()
 	d.closed = true
-	d.mu.Unlock()
+	d.mux.Unlock()
 }

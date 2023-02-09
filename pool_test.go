@@ -72,6 +72,7 @@ var _ = Describe("pool", func() {
 			Expect(cmds).To(HaveLen(1))
 			Expect(ping.Err()).NotTo(HaveOccurred())
 			Expect(ping.Val()).To(Equal("PONG"))
+			Expect(pipe.Close()).NotTo(HaveOccurred())
 		})
 
 		pool := client.Pool()
@@ -86,11 +87,10 @@ var _ = Describe("pool", func() {
 		cn.SetNetConn(&badConn{})
 		client.Pool().Put(ctx, cn)
 
-		val, err := client.Ping(ctx).Result()
+		err = client.Ping(ctx).Err()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(val).To(Equal("PONG"))
 
-		val, err = client.Ping(ctx).Result()
+		val, err := client.Ping(ctx).Result()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(val).To(Equal("PONG"))
 
