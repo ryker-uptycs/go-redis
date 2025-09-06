@@ -1106,15 +1106,16 @@ func (cmd *KeyValueSliceCmd) String() string {
 }
 
 // Many commands will respond to two formats:
-//  1) 1) "one"
-//     2) (double) 1
-//  2) 1) "two"
-//     2) (double) 2
+//  1. 1) "one"
+//  2. (double) 1
+//  2. 1) "two"
+//  2. (double) 2
+//
 // OR:
-//  1) "two"
-//  2) (double) 2
-//  3) "one"
-//  4) (double) 1
+//  1. "two"
+//  2. (double) 2
+//  3. "one"
+//  4. (double) 1
 func (cmd *KeyValueSliceCmd) readReply(rd *proto.Reader) error { // nolint:dupl
 	n, err := rd.ReadArrayLen()
 	if err != nil {
@@ -2047,7 +2048,7 @@ func (cmd *XInfoGroupsCmd) readReply(rd *proto.Reader) error {
 				}
 			case "entries-read":
 				group.EntriesRead, err = rd.ReadInt()
-				if err != nil {
+				if err != nil && err != Nil {
 					return err
 				}
 			case "lag":
@@ -2822,19 +2823,14 @@ func (cmd *ClusterSlotsCmd) readReply(rd *proto.Reader) error {
 			}
 
 			if nn >= 4 {
-				networkingMetadata := make(map[string]string)
-
 				metadataLength, err := rd.ReadMapLen()
 				if err != nil {
 					return err
 				}
 
-				if metadataLength%2 != 0 {
-					return fmt.Errorf(
-						"got %d elements in metadata, expected an even number", metadataLength)
-				}
+				networkingMetadata := make(map[string]string, metadataLength)
 
-				for i := 0; i < metadataLength; i += 2 {
+				for i := 0; i < metadataLength; i++ {
 					key, err := rd.ReadString()
 					if err != nil {
 						return err
